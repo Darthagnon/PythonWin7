@@ -58,3 +58,12 @@
 - Apply `fix-launcher.patch` to ensure that `api-ms-win-core-path-l1-1-0.dll` is installed next to the Python launcher and to work around a bug in `RegGetValueW()` (https://stackoverflow.com/questions/47096940/reggetvalue-for-value-that-may-be-either-reg-sz-or-reg-expand-sz).
 - Apply `restore-win7-handling-2.patch` to modify changes to the Python source code that are not compatible with Windows 7. This modifies https://github.com/python/cpython/commit/938e36f824c5f834d6b77d47942ad81edd5491d0, https://github.com/python/cpython/commit/9ae49e3f3bdf585473f03522a1b7dd7c9e4baa6a, https://github.com/python/cpython/commit/be1c808fcad201adc4d5d6cca52ddb24aeb5e367, and https://github.com/python/cpython/commit/1d95451be1f3080904c00cc4c4a6cc519efdf321. This also modifies https://github.com/python/cpython/issues/111201 to avoid displaying a warning prior to Windows 10 TH2.
 - Run `buildrelease.bat`.
+
+## Python 3.14
+
+- Create a Python 3.13 venv and set `PYTHON` to the location of the Python executable.
+- Apply `add-dll-2.patch` to ensure that `api-ms-win-core-path-l1-1-0.dll` is installed next to the Python executable.
+- Apply `enable-win7-install-10.patch` to allow the installer to proceed on Windows 7 and to include debug symbols, debug binaries, the Universal CRT, and the free-threaded build in the installer. Also remove the deprecation message from https://github.com/python/cpython/commit/e20ca6d1b006674be23d16083f273e8a7b8f77b6.
+- Apply `fix-launcher.patch` to ensure that `api-ms-win-core-path-l1-1-0.dll` is installed next to the Python launcher and to work around a bug in `RegGetValueW()` (https://stackoverflow.com/questions/47096940/reggetvalue-for-value-that-may-be-either-reg-sz-or-reg-expand-sz).
+- Apply `restore-win7-handling-3.patch` to modify changes to the Python source code that are not compatible with Windows 7. This modifies https://github.com/python/cpython/commit/938e36f824c5f834d6b77d47942ad81edd5491d0, https://github.com/python/cpython/commit/9ae49e3f3bdf585473f03522a1b7dd7c9e4baa6a, https://github.com/python/cpython/commit/be1c808fcad201adc4d5d6cca52ddb24aeb5e367, https://github.com/python/cpython/commit/1d95451be1f3080904c00cc4c4a6cc519efdf321, and https://github.com/python/cpython/commit/d027787c8d89f59a9f0b1d7cc6972f5e16ffc740. This also modifies https://github.com/python/cpython/issues/111201 to avoid displaying a warning prior to Windows 10 TH2.
+- Run `buildrelease.bat`.
