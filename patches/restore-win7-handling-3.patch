@@ -142,6 +142,66 @@ index 904c2f5..4ee0c91 100644
  }
  #endif /*MS_WINDOWS*/
  
+diff --git a/Python/ceval.c b/Python/ceval.c
+index 42080f7..5c55313 100644
+--- a/Python/ceval.c
++++ b/Python/ceval.c
+@@ -23,6 +23,7 @@
+ #include "pycore_intrinsics.h"
+ #include "pycore_jit.h"
+ #include "pycore_list.h"          // _PyList_GetItemRef()
++#include "pycore_lock.h"          // _PyOnceFlag_CallOnce()
+ #include "pycore_long.h"          // _PyLong_GetZero()
+ #include "pycore_moduleobject.h"  // PyModuleObject
+ #include "pycore_object.h"        // _PyObject_GC_TRACK()
+@@ -425,13 +426,46 @@ int pthread_attr_destroy(pthread_attr_t *a)
+ #endif
+ 
+ 
++#ifdef WIN32
++#include <winternl.h>
++#include <stdlib.h>
++static _PyOnceFlag once;
++typedef VOID(WINAPI* GetCurrentThreadStackLimitsFunc)(PULONG_PTR LowLimit, PULONG_PTR HighLimit);
++
++static VOID WINAPI Py_GetCurrentThreadStackLimits_impl(PULONG_PTR LowLimit, PULONG_PTR HighLimit)
++{
++    // inspired by Wine's implementation of GetCurrentThreadStackLimits()
++    PTEB teb = NtCurrentTeb();
++    PVOID low;
++    memcpy(&low, teb->Reserved3 + _countof(teb->Reserved3) - sizeof(PVOID), sizeof(PVOID));
++    *LowLimit = (ULONG_PTR)low;
++    *HighLimit = (ULONG_PTR)teb->Reserved1[1];
++}
++
++
++static GetCurrentThreadStackLimitsFunc Py_GetCurrentThreadStackLimits = Py_GetCurrentThreadStackLimits_impl;
++
++
++static int Py_GetCurrentThreadStackLimits_Init(void* Py_UNUSED(arg))
++{
++    HMODULE hKernel32 = GetModuleHandleW(L"kernel32");
++    if (hKernel32) {
++        GetCurrentThreadStackLimitsFunc func = (GetCurrentThreadStackLimitsFunc)GetProcAddress(hKernel32, "GetCurrentThreadStackLimits");
++        if (func) Py_GetCurrentThreadStackLimits = func;
++    }
++    return 0;
++}
++#endif
++
++
+ void
+ _Py_InitializeRecursionLimits(PyThreadState *tstate)
+ {
+     _PyThreadStateImpl *_tstate = (_PyThreadStateImpl *)tstate;
+ #ifdef WIN32
++    _PyOnceFlag_CallOnce(&once, Py_GetCurrentThreadStackLimits_Init, NULL);
+     ULONG_PTR low, high;
+-    GetCurrentThreadStackLimits(&low, &high);
++    Py_GetCurrentThreadStackLimits(&low, &high);
+     _tstate->c_stack_top = (uintptr_t)high;
+     ULONG guarantee = 0;
+     SetThreadStackGuarantee(&guarantee);
 diff --git a/Python/fileutils.c b/Python/fileutils.c
 index 78603d4..79d3b00 100644
 --- a/Python/fileutils.c
